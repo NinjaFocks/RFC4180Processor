@@ -4,7 +4,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        var file = new FileStream("C:\\Users\\rdess\\Desktop\\data.txt", FileMode.Open);
+        var file = new FileStream("", FileMode.Open);
 
         var records = new List<ValidRecord>();
 
