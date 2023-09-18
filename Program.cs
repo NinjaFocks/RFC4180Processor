@@ -5,12 +5,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        ProcessData();
-    }
-
-    private void ProcessData()
-    {
-        var file = new FileStream("C:\\Users\\rdess\\Desktop\\data.txt", FileMode.Open);
+        var file = new FileStream("", FileMode.Open);
 
         var rows = new List<string>();
         var records = new List<ValidRecord>();
