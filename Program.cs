@@ -1,12 +1,21 @@
-﻿using System.Globalization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
+        ProcessData();
+    }
+
+    private void ProcessData()
+    {
         var file = new FileStream("C:\\Users\\rdess\\Desktop\\data.txt", FileMode.Open);
 
+        var rows = new List<string>();
         var records = new List<ValidRecord>();
+
+        var format = CultureInfo.GetCultureInfoByIetfLanguageTag("en-GB");
 
         try
         {
@@ -20,50 +29,80 @@ internal class Program
                     try
                     {
                         line = reader.ReadLine();
-                        values = line.Split('|');
-                    } 
+                        rows.Add(line);
+                    }
                     catch (Exception e)
                     {
                         throw new Exception("Reading file or splitting line failed.");
                     }
+                }
 
-                    // if it's an empty row we don't want it
-                    if (values.All(v => v == "")) { continue; }
+                rows = FilterRows(rows);
 
-                    // check we have the correct number of fields
-                    if (values.Count() != 16)
+                foreach (var row in rows)
+                {
+                    var values = row.Split("|");
+                    // convert to date format, remove extra quotes and assume we're looking at data from GB                    
+                    ReadOnlySpan<char> dateSpan = values[13].AsSpan().Trim('"');
+                    var dateConverted = DateTime.TryParseExact(dateSpan, "yyyy-MM-dd HH:mm:ss", format, DateTimeStyles.None, out DateTime date);
+
+                    if (!dateConverted)
                     {
-                        Console.WriteLine("Line has incorrect number of fields. Line data: " + line);
-                        continue;
+                        Console.WriteLine("Failed to convert date from field " + dateSpan.ToString());
                     }
-
-                    // convert to date format, remove extra quotes and assume we're looking at data from GB
-                    var dateToConvert = values[13].Replace("\"", "");
-                    DateTime? date = null;
-                    try
-                    {                                               
-                        date = DateTime.ParseExact(dateToConvert, "yyyy-MM-dd HH:mm:ss", CultureInfo.GetCultureInfoByIetfLanguageTag("en-GB"));
-                    } 
-                    catch (Exception e) 
-                    {
-                        Console.WriteLine("Failed to convert date from field " + dateToConvert);
-                    }                    
 
                     records.Add(new ValidRecord
                     {
                         A = values[0],
 
-                        L = date
+                        L = dateConverted ? date : null
                     });
-                }
+                }                
             }
-
-            Console.WriteLine("Done");
         }
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
         }
+
+        Console.WriteLine("Done");
+    }
+
+    private List<string> FilterRows(List<string> rows)
+    {
+        List<string> filtered = new List<string>();        
+
+        foreach (string row in rows)
+        {
+            var rowValid = true;
+
+            var values = row.Split("|");
+
+            // check we have the correct number of fields
+            if (values.Length != 16)
+            { 
+                Console.WriteLine("Line has incorrect number of fields. Line data: " + row);
+                rowValid = false;
+            }
+
+            // if it's an empty row we don't want it
+            int emptyCount = 0;
+            foreach (string value in values)
+            {
+                if (value == "")
+                {
+                    emptyCount++;
+                }
+            }
+            if (emptyCount == values.Length)
+            {
+                rowValid = false;
+            }
+
+            if (rowValid) filtered.Add(row);
+        }
+
+        return filtered;
     }
 }
 
